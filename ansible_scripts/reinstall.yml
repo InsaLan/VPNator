@@ -1,0 +1,76 @@
+---
+- hosts: vpn
+  remote_user: debian
+  vars:
+    subnet: "{{ hostvars[inventory_hostname].subnet }}"
+    port: 5010
+    protocol: tcp
+    ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
+    
+  tasks:
+#  - name: (If VPN is already installed) Check if the setup script exists
+#    stat:
+#      path: /root/vpn/setup_from_naboo_ansible.sh
+#    register: vpn_installed
+
+#  - name: (If VPN is already installed) Uninstall script is built
+#    template: src=templates/oneliner_uninstall.j2 dest=/root/uninstall_vpn_ansible.sh
+#      owner=root
+#      mode=0777
+#    when: vpn_installed.stat.exists == true
+
+#  - name: Launch of the uninstalling script
+#    command: bash /root/uninstall_vpn_ansible.sh
+#    when: vpn_installed.stat.exists == true 
+
+#  - name: (If VPN is already installed) Uninstall script is deleted
+#    file:
+#      path: /root/uninstall_vpn_ansible.sh
+#      state: absent
+#    when: vpn_installed.stat.exists == true
+
+  - name: Create a folder for the VPN software
+    become: true
+    become_method: sudo
+    file:
+     path: /home/vpn
+     state: directory
+
+  - name: Push the custom script using templates
+    become: true
+    become_method: sudo
+    template: src=templates/oneliner_template.j2 dest=/home/vpn/setup_from_naboo_ansible.sh
+      owner=debian
+      mode=0777
+
+  - name: Launch of the oneliner
+    become: true
+    become_method: sudo
+    command: bash /home/vpn/setup_from_naboo_ansible.sh
+
+  - name: Rename dev tun
+    become: true
+    become_method: sudo
+    lineinfile:            
+      path: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+      regexp: '^dev tun'
+      line: "dev tun{{groups['vpn'].index(inventory_hostname) + 1}}"
+
+  - name: Repatriate .ovpn files
+    become: true
+    become_method: sudo
+    fetch:
+      src: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+      dest: ../openvpn_files/
+      flat: true
+
+  - name: Deploy tunnels
+    become: true
+    become_method: sudo
+#    lineinfile:
+#      path: templates/emergencyVPN.sh
+#      regexp: '^file='
+#      line: 'file="nabooVPN{{ ovpnNumber }}.ovpn"'
+    command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
+    delegate_to: localhost
+

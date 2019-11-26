@@ -1,0 +1,146 @@
+---
+# On vérifie si aucun tag n'a été défini, dans ce cas on affiche une invite pour choisir l'action a effectuer.
+# Le résultat de l'user input est stocké dans hostvars.localhost.pause_result.user_input. Il vaut un string ("1", "2", etc...) si aucun tag a été défini, ou est undefined si au moins un tag a été précisé. Cette variable est TREES CHIANTE à récupérer puisqu'elle ests sur l'host 'localhost'
+
+# On a: hostvars.localhost.pause_result.user_input qui contient la réponse (ou qui est undefined si les tags sont utilisés
+
+- hosts: localhost
+  tasks:
+    - name: Check args
+      pause: 
+        prompt: "WARNING: It looks like you didn't used any tag.\n
+        You can use the argument '--tags tag1,tag2,...' to sepcify one or more action to run\n
+        What do you want to do now?\n\n
+        [1]: Install OpenVPN (--tags install)\n
+        [2]: Remove OpenVPN (--tags uninstall)\n
+        [3]: Uninstall and reinstall OpenVPN (--tags install,uninstall)\n
+        [4]: Quickly reconfigure OpenVPN without removing the packages (--tags quickreconf)\n
+        [5]: Re-mount tunnels and re-apply MASQUERADE on the VPNs (--tags remount)\n\n
+        [A]: Execute ALL tasks"
+      register: pause_result
+      
+
+    
+
+# Et maintenant on s'occupe vraiment des VPNs
+- hosts: vpn
+  remote_user: debian
+  vars:
+    subnet: "{{ hostvars[inventory_hostname].subnet }}"
+    port: 5010
+    protocol: tcp
+    ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
+    removeOpvpn: true
+  tasks: # ****************************** UNINSTALL *************************************
+    - name: Check weither is uninstall or quickreconf
+      command: /bin/true
+      vars:
+        removeOpvpn: false
+      when: hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined 
+      tags: quickreconf
+      
+    - name: === Uninstall ===
+      block:
+        - name: Check if the setup script exists
+          stat:
+            path: /home/vpn/setup_from_naboo_ansible.sh
+          register: vpn_installed
+
+        - name: Kill OpenVPN
+          become: true
+          become_method: sudo
+          command: pkill openvpn
+
+        - name: Uninstall script is built
+          become: true
+          become_method: sudo
+          template: src=templates/oneliner_uninstall.j2 dest=/home/uninstall_vpn_ansible.sh
+            owner=debian
+            mode=0777
+          when: vpn_installed.stat.exists == true
+
+        - name: Launch of the uninstalling script
+          become: true
+          become_method: sudo
+          command: bash /home/uninstall_vpn_ansible.sh
+          when: vpn_installed.stat.exists == true
+
+        - name: Uninstall script is deleted
+          become: true
+          become_method: sudo
+          file:
+            path: /home/uninstall_vpn_ansible.sh
+            state: absent
+          when: vpn_installed.stat.exists == true
+
+        - name: Remove VPN directory
+          become: true
+          become_method: sudo
+          file:
+            path: /home/vpn/
+            recurse: true
+            state: directory
+          when: vpn_installed.stat.exists == true
+      when: hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined 
+      tags: [ uninstall ]
+      
+      
+    # ************************ DEPLOY *****************************************
+    - name: === Deploy ===
+      block:
+        - name: Create a folder for the VPN software
+          become: true
+          become_method: sudo
+          file:
+            path: /home/vpn
+            state: directory
+
+        - name: Push the custom script using templates
+          become: true
+          become_method: sudo
+          template: src=templates/oneliner_template.j2 dest=/home/vpn/setup_from_naboo_ansible.sh
+            owner=debian
+            mode=0777
+
+        - name: Launch of the oneliner
+          become: true
+          become_method: sudo
+          command: bash /home/vpn/setup_from_naboo_ansible.sh
+
+        - name: Rename dev tun
+          become: true
+          become_method: sudo
+          lineinfile:            
+            path: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+            regexp: '^dev tun'
+            line: "dev tun{{groups['vpn'].index(inventory_hostname) + 1}}"
+
+        - name: Repatriate .ovpn files
+          become: true
+          become_method: sudo
+          fetch:
+            src: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+            dest: ../openvpn_files/
+            flat: true
+
+      when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined
+      tags: [ install ]
+      
+    # ****************** MOUNT **********************
+    - name: === Mounting ===
+      block:
+        - name: Deploy tunnels
+          become: true
+          become_method: sudo
+          command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
+          delegate_to: localhost
+
+        - name: IP Table Rule
+          become: true
+          become_method: sudo
+          command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
+      when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input is not defined
+      tags: [ install, remount]
+      
+
+

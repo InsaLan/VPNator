@@ -1,0 +1,31 @@
+---  
+- hosts: vpn
+  remote_user: root
+  tasks:
+  - name: Standard packages for Insalan VPS
+    apt:
+      name: "{{ item }}"
+      update_cache: true
+      state: present
+    with_items:
+      - 'git'
+      - 'tmux'
+      - 'bmon'
+      - 'htop'
+      - 'iftop'
+      - 'nmap'
+      - 'unbound'
+
+  - name: Copy the unbound original configuration file
+    copy:
+      src: /home/management/unbound_vpn.conf
+      dest: /etc/unbound/unbound.conf
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes
+
+  - name: Restart service unbound
+    service:
+      name: unbound
+      state: restarted
