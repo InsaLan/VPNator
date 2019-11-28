@@ -1,0 +1,90 @@
+---
+- hosts: vpn
+  remote_user: debian
+  vars:
+    port: 443
+    protocol: tcp
+    ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
+
+  tasks:
+  - name: Check if the setup script exists
+    stat:
+      path: /home/vpn/setup_from_naboo_ansible.sh
+    register: vpn_installed
+
+    # Just in case, kill OVPN
+  - name: Kill OpenVPN
+    become: true
+    become_method: sudo
+    command: pkill openvpn
+
+  - name: Remove Additional Tools' Config (FireQOS)
+    become: true
+    become_method: sudo
+    files:
+            state: absent
+            path: /etc/firehall/fireqos.conf
+
+  - name: Uninstall additional tools (FireQOS)
+    become: true
+    become_method: sudo
+    apt:
+            state: absent
+            purge: True
+            name: "{{ item }}"
+    whith_items:
+            - fireqos
+            - htop
+
+  # Uninstall script begins here
+  - name: Remove IP Table rule for NAT
+    become: true
+    become_method: sudo
+    command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
+
+  - name: Uninstall and purge OpenVPN
+    become: true
+    become_method: sudo
+    apt:
+            name: openvpn
+            purge: True
+            state: absent
+
+  - name: Remove OVPN config files
+    become: true
+    become_method: sudo
+    files:
+            state: absent
+            path: "{{ item }}"
+    with_items:
+        - /etc/openvpn
+        - /etc/sysctl.d/30-openvpn-forward.conf
+        - /home/vpn
+        - /home/nabooVPN{{ ovpnNumber }}
+
+  - name: Launch of the uninstalling script
+    become: true
+    become_method: sudo
+    command: bash /home/uninstall_vpn_ansible.sh
+    when: vpn_installed.stat.exists == true
+
+  - name: Uninstall script is deleted
+    become: true
+    become_method: sudo
+    file:
+      path: /home/uninstall_vpn_ansible.sh
+      state: absent
+    when: vpn_installed.stat.exists == true
+
+  - name: Remove VPN directory
+    become: true
+    become_method: sudo
+    file:
+      path: /home/vpn/
+      recurse: true
+      state: directory
+    when: vpn_installed.stat.exists == true
+
+#  - name: Remove VPN tunnels
+#    command: "ip link delete tun0"
+#    delegate_to: localhost
