@@ -1,0 +1,35 @@
+port {{ port }}
+proto {{ protocol }}
+dev tun
+sndbuf 0
+rcvbuf 0
+
+# Config sécurité. ON N'EN A PAS BESOIN
+#ca ca.crt
+#cert server.crt
+#key server.key
+#dh dh.pem
+#tls-auth ta.key 0
+
+# cipher AES-256-CBC
+cipher none #PAS DE CHIFFREMENT
+# auth SHA512
+auth none
+mssfix 1400
+tun-mtu 1444
+topology subnet
+server {{ subnet }} 255.255.255.0
+ifconfig-pool-persist ipp.txt
+
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 1.1.1.1"
+push "dhcp-option DNS 1.0.0.1"
+
+keepalive 10 120
+user nobody
+group nogroup # /!\ Dans le oneliner, c'est "nobody" pour CentOS (si jamais la machine est sous CentOS?)
+persist-key
+persist-tun
+status openvpn-status.log
+verb 3
+crl-verify crl.pem

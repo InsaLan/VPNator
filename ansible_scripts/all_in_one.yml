@@ -1,17 +1,23 @@
 ---
+
+
+#FIXME: Le script tunnel.sh ne focntionne pas car le path du .ovpn est hardcodé dedans
+
+
 # On vérifie si aucun tag n'a été défini, dans ce cas on affiche une invite pour choisir l'action a effectuer.
 # Le résultat de l'user input est stocké dans hostvars.localhost.pause_result.user_input. Il vaut un string ("1", "2", etc...) si aucun tag a été défini, ou est undefined si au moins un tag a été précisé. Cette variable est TREES CHIANTE à récupérer puisqu'elle ests sur l'host 'localhost'
 
-# On a: hostvars.localhost.pause_result.user_input qui contient la réponse (ou qui est undefined si les tags sont utilisés
+# On a: hostvars.localhost.pause_result.user_input qui contient la réponse (ou qui est undefined si les tags sont utilisés)
 
 - hosts: localhost
+  gather_facts: no
   tasks:
     - name: Check args
       pause: 
         prompt: "WARNING: It looks like you didn't used any tag.\n
         You can use the argument '--tags tag1,tag2,...' to sepcify one or more action to run\n
         What do you want to do now?\n\n
-        [1]: Install OpenVPN (--tags install)\n
+        [1]: Install OpenVPN (and configure it) (--tags install)\n
         [2]: Remove OpenVPN (--tags uninstall)\n
         [3]: Uninstall and reinstall OpenVPN (--tags install,uninstall)\n
         [4]: Quickly reconfigure OpenVPN without removing the packages (--tags quickreconf)\n
@@ -31,6 +37,9 @@
     protocol: tcp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
     removeOpvpn: true
+    # OPENVPN
+    default_args: --route-noexec
+    extra_args: 
   tasks: # ****************************** UNINSTALL *************************************
     - name: Check weither is uninstall or quickreconf
       command: /bin/true
@@ -85,9 +94,17 @@
       tags: [ uninstall ]
       
       
-    # ************************ DEPLOY *****************************************
-    - name: === Deploy ===
+    # ************************ INSTALL *****************************************
+    - name: === Install ===
       block:
+        - name: Insall packages
+          become: true
+          become_method: sudo
+          apt:
+            name: ['openvpn', 'iptables', 'openssl']
+            state: present
+            update_cache: yes
+            
         - name: Create a folder for the VPN software
           become: true
           become_method: sudo
@@ -95,17 +112,41 @@
             path: /home/vpn
             state: directory
 
-        - name: Push the custom script using templates
+        #- name: Push the custom script using templates
+        #  become: true
+        #  become_method: sudo
+        #  template: src=templates/oneliner_template.j2 dest=/home/vpn/setup_from_naboo_ansible.sh
+        #    owner=debian
+        #    mode=0777
+        
+        #- name: Launch of the oneliner
+        #  become: true
+        #  become_method: sudo
+        #  command: bash /home/vpn/setup_from_naboo_ansible.sh
+          
+        - name: Copy the key generation script
           become: true
           become_method: sudo
-          template: src=templates/oneliner_template.j2 dest=/home/vpn/setup_from_naboo_ansible.sh
-            owner=debian
-            mode=0777
+          template: src=templates/certgen.sh.j2 dest=/home/vpn/certgen.sh
+          
+        - name: Copy the server.conf to the remote server
+          become: true
+          become_method: sudo
+          template: src=templates/server.conf.j2 dest=/etc/openvpn/server.conf
+            #owner=root
+            #mode=0777
+            
+        - name: Copy the client.ovpn file to the server to apply the template
+          become: true
+          become_method: sudo
+          template:
+            src: templates/client.conf.j2
+            dest: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
 
-        - name: Launch of the oneliner
+        - name: Generate the keys
           become: true
           become_method: sudo
-          command: bash /home/vpn/setup_from_naboo_ansible.sh
+          command: bash /home/vpn/certgen.sh
 
         - name: Rename dev tun
           become: true
@@ -122,6 +163,12 @@
             src: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
             dest: ../openvpn_files/
             flat: true
+        - name: IP Table Rule
+          become: true
+          become_method: sudo
+          command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
+
+      
 
       when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined
       tags: [ install ]
@@ -132,15 +179,11 @@
         - name: Deploy tunnels
           become: true
           become_method: sudo
-          command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
+          command: "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
+          #command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
           delegate_to: localhost
-
-        - name: IP Table Rule
-          become: true
-          become_method: sudo
-          command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
       when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input is not defined
       tags: [ install, remount]
-      
+        
 
 
