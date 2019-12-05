@@ -64,7 +64,12 @@
       dest: ../openvpn_files/
       flat: true
 
-  - name: Deploy tunnels
+  - name: Start openvpn on the remote server
+    become: true
+    become_method: sudo
+    command: systemctl restart openvpn@server.service
+      
+  - name: Deploy tunnels on the local host
     become: true
     become_method: sudo
 #    lineinfile:

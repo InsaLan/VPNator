@@ -1,0 +1,26 @@
+client
+
+dev tun
+proto {{ protocol }}
+sndbuf 0
+rcvbuf 0
+
+remote {{ ovpnNumber }} {{ port }}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+auth none
+cipher none
+
+
+# Chiffrement - ON N'EN A PAS BESOIN
+#remote-cert-tls server
+#auth SHA512
+#cipher AES-256-CBC
+#setenv opt block-outside-dns
+#key-direction 1
+
+tun-mtu 1444
+mssfix 1400
+verb 3
