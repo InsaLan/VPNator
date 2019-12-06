@@ -20,9 +20,8 @@
         [1]: Install OpenVPN (and configure it) (--tags install)\n
         [2]: Remove OpenVPN (--tags uninstall)\n
         [3]: Uninstall and reinstall OpenVPN (--tags install,uninstall)\n
-        [4]: Quickly reconfigure OpenVPN without removing the packages (--tags quickreconf)\n
-        [5]: Re-mount tunnels and re-apply MASQUERADE on the VPNs (--tags remount)\n\n
-        [A]: Execute ALL tasks"
+        [4]: Stop OpenVPN (--tags stop)\n
+        [5]: Start the tunnels and FireqOS (--tags start)"
       register: pause_result
       
 
@@ -36,18 +35,34 @@
     port: 5010
     protocol: tcp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
-    removeOpvpn: true
     packages: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     # OPENVPN
     default_args: --route-noexec --daemon
     extra_args: 
   tasks:  # ****************************** UNINSTALL *************************************
-    - name: Check weither is uninstall or quickreconf
-      command: /bin/true
-      vars:
-        removeOpvpn: false
-      when: hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined 
-      tags: quickreconf
+      
+    - name: === STOP ===
+      block:
+      - name: Kill OpenVPN on remote
+        become: true
+        become_method: sudo
+        command: pkill openvpn
+        ignore_errors: true
+      
+      - name: Kill OpenVPN on localhost
+        become: true
+        become_method: sudo
+        command: pkill openvpn
+        delegate_to: localhost
+        ignore_errors: true
+      
+      - name: Stop FireQOS on remote
+        become: true
+        become_method: sudo
+        command: fireqos stop
+        
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4") ) or hostvars.localhost.pause_result is not defined
+      tags: [ uninstall, stop ]
       
     - name: === Uninstall ===
       block:
@@ -56,19 +71,6 @@
           path: /home/uninstall_vpn_ansible.sh
         register: vpn_installed
 
-        # Just in case, kill OVPN
-      - name: Just in case, kill OpenVPN
-        become: true
-        become_method: sudo
-        command: pkill openvpn
-        ignore_errors: true
-        
-      - name: Same, for localhost
-        become: true
-        become_method: sudo
-        command: pkill openvpn
-        delegate_to: localhost
-        ignore_errors: true
 
       - name: Remove Additional Tools Config (FireQOS)
         become: true
@@ -134,7 +136,7 @@
           recurse: true
           state: directory
         when: vpn_installed.stat.exists == true
-      when: hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined 
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3")) or hostvars.localhost.pause_result is not defined
       tags: [ uninstall ]
       
       
@@ -221,7 +223,7 @@
 
       
 
-      when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
       tags: [ install ]
       
     # ****************** MOUNT **********************
@@ -248,8 +250,8 @@
           become_method: sudo
           command: "fireqos start"
           
-      when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input is not defined
-      tags: [ install, remount]
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "5" )) or hostvars.localhost.pause_result is not defined
+      tags: [ install, start]
         
 
 
