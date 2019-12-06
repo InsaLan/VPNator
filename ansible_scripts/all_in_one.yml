@@ -37,10 +37,11 @@
     protocol: tcp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
     removeOpvpn: true
+    packages: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     # OPENVPN
     default_args: --route-noexec --daemon
     extra_args: 
-  tasks: # ****************************** UNINSTALL *************************************
+  tasks:  # ****************************** UNINSTALL *************************************
     - name: Check weither is uninstall or quickreconf
       command: /bin/true
       vars:
@@ -50,46 +51,89 @@
       
     - name: === Uninstall ===
       block:
-        - name: Check if the setup script exists
-          stat:
-            path: /home/vpn/setup_from_naboo_ansible.sh
-          register: vpn_installed
+      - name: Check if the setup script exists
+        stat:
+          path: /home/uninstall_vpn_ansible.sh
+        register: vpn_installed
 
-        - name: Kill OpenVPN
-          become: true
-          become_method: sudo
-          command: pkill openvpn
+        # Just in case, kill OVPN
+      - name: Just in case, kill OpenVPN
+        become: true
+        become_method: sudo
+        command: pkill openvpn
+        ignore_errors: true
+        
+      - name: Same, for localhost
+        become: true
+        become_method: sudo
+        command: pkill openvpn
+        delegate_to: localhost
+        ignore_errors: true
 
-        - name: Uninstall script is built
-          become: true
-          become_method: sudo
-          template: src=templates/oneliner_uninstall.j2 dest=/home/uninstall_vpn_ansible.sh
-            owner=debian
-            mode=0777
-          when: vpn_installed.stat.exists == true
+      - name: Remove Additional Tools Config (FireQOS)
+        become: true
+        become_method: sudo
+        file:
+          state: absent
+          path: /etc/firehall/fireqos.conf
 
-        - name: Launch of the uninstalling script
-          become: true
-          become_method: sudo
-          command: bash /home/uninstall_vpn_ansible.sh
-          when: vpn_installed.stat.exists == true
+      - name: Remove IP Table rule for NAT
+        become: true
+        become_method: sudo
+        command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
+        ignore_errors: true
 
-        - name: Uninstall script is deleted
-          become: true
-          become_method: sudo
-          file:
-            path: /home/uninstall_vpn_ansible.sh
-            state: absent
-          when: vpn_installed.stat.exists == true
+      - name: Uninstall additional tools (FireQOS)
+        become: true
+        become_method: sudo
+        apt:
+                state: absent
+                purge: true
+                name: "{{ packages }}"
+                
+      # Uninstall script begins here
+      - name: Uninstall and purge OpenVPN
+        become: true
+        become_method: sudo
+        apt:
+                name: openvpn
+                purge: True
+                state: absent
 
-        - name: Remove VPN directory
-          become: true
-          become_method: sudo
-          file:
-            path: /home/vpn/
-            recurse: true
-            state: directory
-          when: vpn_installed.stat.exists == true
+      - name: Remove OVPN config files
+        become: true
+        become_method: sudo
+        file:
+                state: absent
+                path: "{{ item }}"
+        loop:
+            - /etc/openvpn
+            - /etc/sysctl.d/30-openvpn-forward.conf
+            - /home/vpn
+            - /home/nabooVPN{{ ovpnNumber }}
+
+      - name: Launch of the uninstalling script
+        become: true
+        become_method: sudo
+        command: bash /home/uninstall_vpn_ansible.sh
+        when: vpn_installed.stat.exists == true
+
+      - name: Uninstall script is deleted
+        become: true
+        become_method: sudo
+        file:
+          path: /home/uninstall_vpn_ansible.sh
+          state: absent
+        when: vpn_installed.stat.exists == true
+
+      - name: Remove VPN directory
+        become: true
+        become_method: sudo
+        file:
+          path: /home/vpn/
+          recurse: true
+          state: directory
+        when: vpn_installed.stat.exists == true
       when: hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input is not defined 
       tags: [ uninstall ]
       
@@ -101,7 +145,7 @@
           become: true
           become_method: sudo
           apt:
-            name: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
+            name: "{{ packages }}"
             state: present
             update_cache: yes
             
@@ -198,6 +242,12 @@
           command: "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
           #command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
           delegate_to: localhost
+          
+        - name: Start FireQOS
+          become: true
+          become_method: sudo
+          command: "fireqos start"
+          
       when: hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input is not defined
       tags: [ install, remount]
         
