@@ -1,47 +1,50 @@
 ---
+# Yee who uses this script be wary
+# For you are the first mortal soul
+# To execute it in prod
+
 - hosts: vpn
   remote_user: debian
   vars:
-    port: 443
-    protocol: tcp
+  #  port: 443
+  #  protocol: tcp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
 
   tasks:
   - name: Check if the setup script exists
     stat:
-      path: /home/vpn/setup_from_naboo_ansible.sh
+      path: /home/uninstall_vpn_ansible.sh
     register: vpn_installed
 
     # Just in case, kill OVPN
-  - name: Kill OpenVPN
+  - name: Just in case, kill OpenVPN
     become: true
     become_method: sudo
     command: pkill openvpn
+    ignore_errors: true
 
-  - name: Remove Additional Tools' Config (FireQOS)
+  - name: Remove Additional Tools Config (FireQOS)
     become: true
     become_method: sudo
-    files:
-            state: absent
-            path: /etc/firehall/fireqos.conf
+    file:
+      state: absent
+      path: /etc/firehall/fireqos.conf
+
+  - name: Remove IP Table rule for NAT
+    become: true
+    become_method: sudo
+    command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
+    ignore_errors: true
 
   - name: Uninstall additional tools (FireQOS)
     become: true
     become_method: sudo
     apt:
             state: absent
-            purge: True
-            name: "{{ item }}"
-    whith_items:
-            - fireqos
-            - htop
+            purge: true
+            name: ['iperf3', 'ca-certificates', 'fireqos', 'curl', 'htop', 'iptables', 'openssl', 'tmux', 'screen', 'neovim', 'vim', 'hexedit', 'emacs', 'iftop', 'bmon']
 
   # Uninstall script begins here
-  - name: Remove IP Table rule for NAT
-    become: true
-    become_method: sudo
-    command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
-
   - name: Uninstall and purge OpenVPN
     become: true
     become_method: sudo
@@ -53,10 +56,10 @@
   - name: Remove OVPN config files
     become: true
     become_method: sudo
-    files:
+    file:
             state: absent
             path: "{{ item }}"
-    with_items:
+    loop:
         - /etc/openvpn
         - /etc/sysctl.d/30-openvpn-forward.conf
         - /home/vpn
