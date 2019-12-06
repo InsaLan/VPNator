@@ -27,7 +27,7 @@ chown nobody:$GROUPNAME /etc/openvpn/crl.pem
 
 
 #Print to the ovpn file
-OVPN_PATH=/home/nabooVPN{{ ovpnNumber }}.ovpn
+OVPN_PATH=/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn
 
 echo "<ca>" >> $OVPN_PATH
 cat /etc/openvpn/easy-rsa/pki/ca.crt >> $OVPN_PATH

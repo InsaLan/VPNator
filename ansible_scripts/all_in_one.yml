@@ -38,7 +38,7 @@
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
     removeOpvpn: true
     # OPENVPN
-    default_args: --route-noexec
+    default_args: --route-noexec --daemon
     extra_args: 
   tasks: # ****************************** UNINSTALL *************************************
     - name: Check weither is uninstall or quickreconf
@@ -97,11 +97,11 @@
     # ************************ INSTALL *****************************************
     - name: === Install ===
       block:
-        - name: Insall packages
+        - name: Install packages and utilities
           become: true
           become_method: sudo
           apt:
-            name: ['openvpn', 'iptables', 'openssl']
+            name: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
             state: present
             update_cache: yes
             
@@ -141,18 +141,25 @@
           become_method: sudo
           template:
             src: templates/client.conf.j2
-            dest: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+            dest: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
 
         - name: Generate the keys
           become: true
           become_method: sudo
           command: bash /home/vpn/certgen.sh
+          
+        - name: Send dh.pem
+          become: true
+          become_method: sudo
+          template:
+            src: templates/dh.pem
+            dest: "/etc/openvpn/dh.pem"
 
         - name: Rename dev tun
           become: true
           become_method: sudo
           lineinfile:            
-            path: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+            path: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
             regexp: '^dev tun'
             line: "dev tun{{groups['vpn'].index(inventory_hostname) + 1}}"
 
@@ -160,7 +167,7 @@
           become: true
           become_method: sudo
           fetch:
-            src: "/home/nabooVPN{{ ovpnNumber }}.ovpn"
+            src: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
             dest: ../openvpn_files/
             flat: true
         - name: IP Table Rule
@@ -176,7 +183,16 @@
     # ****************** MOUNT **********************
     - name: === Mounting ===
       block:
-        - name: Deploy tunnels
+        - name: Start openvpn on the remote server
+          become: true
+          become_method: sudo
+          command:
+            cmd: "openvpn --config /etc/openvpn/server.conf --daemon"
+            chdir: /etc/openvpn
+          #command: systemctl restart openvpn
+          #@server.service)
+            
+        - name: Deploy tunnels on the local host
           become: true
           become_method: sudo
           command: "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
