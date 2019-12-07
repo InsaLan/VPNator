@@ -216,6 +216,12 @@
             src: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
             dest: ../openvpn_files/
             flat: true
+
+        - name: Enable IP Forward
+          become: true
+          become_method: sudo
+          shell: echo 1 > /proc/sys/net/ipv4/ip_forward
+
         - name: IP Table Rule
           become: true
           become_method: sudo
