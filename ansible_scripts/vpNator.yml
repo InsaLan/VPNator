@@ -49,7 +49,7 @@
         command: pkill openvpn
         ignore_errors: true
       
-      - name: Kill OpenVPN on localhost
+      - name: Kill OpenVPN on localhost # FIXME : Figure out whether you can only kill for one tunnel
         become: true
         become_method: sudo
         command: pkill openvpn
@@ -66,12 +66,6 @@
       
     - name: === Uninstall ===
       block:
-      - name: Check if the setup script exists
-        stat:
-          path: /home/uninstall_vpn_ansible.sh
-        register: vpn_installed
-
-
       - name: Remove Additional Tools Config (FireQOS)
         become: true
         become_method: sudo
@@ -102,7 +96,7 @@
                 purge: True
                 state: absent
 
-      - name: Remove OVPN config files
+      - name: Remove OVPN config files and VPN directory
         become: true
         become_method: sudo
         file:
@@ -114,28 +108,6 @@
             - /home/vpn
             - /home/nabooVPN{{ ovpnNumber }}
 
-      - name: Launch of the uninstalling script
-        become: true
-        become_method: sudo
-        command: bash /home/uninstall_vpn_ansible.sh
-        when: vpn_installed.stat.exists == true
-
-      - name: Uninstall script is deleted
-        become: true
-        become_method: sudo
-        file:
-          path: /home/uninstall_vpn_ansible.sh
-          state: absent
-        when: vpn_installed.stat.exists == true
-
-      - name: Remove VPN directory
-        become: true
-        become_method: sudo
-        file:
-          path: /home/vpn/
-          recurse: true
-          state: directory
-        when: vpn_installed.stat.exists == true
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3")) or hostvars.localhost.pause_result is not defined
       tags: [ uninstall ]
       
@@ -158,18 +130,6 @@
             path: /home/vpn
             state: directory
 
-        #- name: Push the custom script using templates
-        #  become: true
-        #  become_method: sudo
-        #  template: src=templates/oneliner_template.j2 dest=/home/vpn/setup_from_naboo_ansible.sh
-        #    owner=debian
-        #    mode=0777
-        
-        #- name: Launch of the oneliner
-        #  become: true
-        #  become_method: sudo
-        #  command: bash /home/vpn/setup_from_naboo_ansible.sh
-          
         - name: Copy the key generation script
           become: true
           become_method: sudo
@@ -226,8 +186,6 @@
           become: true
           become_method: sudo
           command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
-
-      
 
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
       tags: [ install ]
