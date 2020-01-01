@@ -204,7 +204,7 @@
           become: true
           become_method: sudo
           command:
-            cmd: "openvpn --config /etc/openvpn/server.conf --daemon"
+            cmd: "/usr/sbin/openvpn --config /etc/openvpn/server.conf --daemon"
             chdir: /etc/openvpn
           #command: systemctl restart openvpn
           #@server.service)
@@ -212,7 +212,7 @@
         - name: Deploy tunnels on the local host
           become: true
           become_method: sudo
-          command: "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
+          command: "/usr/sbin/openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
           #command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
           delegate_to: localhost
           
