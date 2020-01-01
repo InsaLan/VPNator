@@ -79,13 +79,20 @@
         command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
         ignore_errors: true
 
-      - name: Uninstall additional tools (FireQOS)
-        become: true
-        become_method: sudo
-        apt:
-                state: absent
-                purge: true
-                name: "{{ packages }}"
+        #- name: Uninstall additional tools
+        #become: true
+        #become_method: sudo
+        #apt:
+        #        state: absent
+        #        purge: true
+        #        name: "{{ packages }}"
+        #
+        # As it turns out, none of the tools we have really need to be
+        # removed that badly. We can let them sit there until the VPS
+        # expires. Also, this part is dangerous to use in testing on
+        # machines where these other packages are dependencies of
+        # working services, which configuration will get wiped.
+        # Source : the apache2 server I accidentally wiped clean from my VPS
                 
       # Uninstall script begins here
       - name: Uninstall and purge OpenVPN
