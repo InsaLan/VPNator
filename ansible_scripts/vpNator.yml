@@ -52,7 +52,7 @@
       - name: Kill OpenVPN on localhost # FIXME : Figure out whether you can only kill for one tunnel
         become: true
         become_method: sudo
-        command: pkill openvpn
+        command: pkill -f "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn" 
         delegate_to: localhost
         ignore_errors: true
       
@@ -213,7 +213,8 @@
           become: true
           become_method: sudo
           command: "/usr/sbin/openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
-          #command: bash templates/tunnels.sh nabooVPN{{ ovpnNumber }}.ovpn
+          # WARNING :   If you modify the beginning of this line (between openvpn and .ovpn), remember to modify the openvpn pkill
+          #             line for local host up above
           delegate_to: localhost
           
         - name: Start FireQOS
