@@ -1,34 +1,59 @@
 #!/bin/bash
 
+# Some cleanup
 rm -rf /etc/openvpn/easy-rsa
 
-#FROM THE OPENVPN ROADWARRIOR SCRIPT
+# FROM THE OPENVPN ROADWARRIOR SCRIPT
+# Annoted with comments for clarity and explanation
+# Further explanations are available in the README for vpNator
 
+############################
+# Variables :
+# --------------------------
+
+# The source code for easy-rsa is available on OpenVPN's github repository
+# The version we currently use is v3.0.5
 EASYRSAURL='https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.5/EasyRSA-nix-3.0.5.tgz'
+
+OVPN_PATH=/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn
+
+
+############################
+# Script :
+# --------------------------
+
+# The script is downloaded and uncompressed. If wget somehow fails, use curl
+#   with the --location/-L option to follow redirections from GitHub to AWS.
+# The downloaded archive is extracted into $HOME
 wget -O ~/easyrsa.tgz "$EASYRSAURL" 2>/dev/null || curl -Lo ~/easyrsa.tgz "$EASYRSAURL"
-tar xzf ~/easyrsa.tgz -C ~/
-mv ~/EasyRSA-3.0.5/ /etc/openvpn/
-mv /etc/openvpn/EasyRSA-3.0.5/ /etc/openvpn/easy-rsa/
+tar xzf ~/easyrsa.tgz -C ~/ && rm -f ~/easyrsa.tgz
+
+# We move everything we inflated into openvpn's etc directory
+mv ~/EasyRSA-3.0.5/ /etc/openvpn/easy-rsa
 chown -R root:root /etc/openvpn/easy-rsa/
-rm -f ~/easyrsa.tgz
 cd /etc/openvpn/easy-rsa/
-# Create the PKI, set up the CA and the server and client certificates
+
+# Create the PKI (public key infrastructure), set up the CA (certificate authority) and the server and client certificates
+# If you want to understand these terms, your favourite search engine has a lot of useful resources.
 ./easyrsa init-pki
 ./easyrsa --batch build-ca nopass
+
+# These variables are only set for the duration of the execution of their respective command
+# In order to specify that our certificates should last for a little while
 EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-server-full server nopass
 EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-client-full cert nopass
 EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
+
 # Move the stuff we need
 cp pki/ca.crt pki/private/ca.key pki/issued/server.crt pki/private/server.key pki/crl.pem /etc/openvpn
+
 # CRL is read with each client connection, when OpenVPN is dropped to nobody
 chown nobody:$GROUPNAME /etc/openvpn/crl.pem
-# Generate key for tls-auth
+
+# We no longer generate a key for tls-auth
 # openvpn --genkey --secret /etc/openvpn/ta.key
 
-
-#Print to the ovpn file
-OVPN_PATH=/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn
-
+# Print certificate & co. to the ovpn file
 echo "<ca>" >> $OVPN_PATH
 cat /etc/openvpn/easy-rsa/pki/ca.crt >> $OVPN_PATH
 echo "</ca>" >> $OVPN_PATH
