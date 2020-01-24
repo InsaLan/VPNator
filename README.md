@@ -20,14 +20,6 @@ This part of the document contains more explicit and detailed explanations of wh
 
 ### Technical generalities
 
-Various aspects of the playbook can be modified on a global level.
-  - The port on which OpenVPN should listen for incoming connections is modified around line 35 in the `port` variable
-  - The protocol used by OpenVPN to transmit data is determined by the variable `protocol`
-  - The variable `ovpnNumber` contains a unique identifier used to distinguish files from a specific VPS and its associated VPN
-  - Default arguments passed to OpenVPN are defined by the variable `default_args`. Additional arguments should be written in `extra_args`.
-
-Our version of VPNator connects to any remote machine under the `vpn` group with the login `debian`, and no password.
-
 The way VPNator is typically run at INSALan, a simple call to `ansible-playbook`, passing any flags if needed, is enough. However, if your remote user happens to need a sudo password, or the remote SSH connection requires a password (or keys you haven't loaded), then :
   - Remember to load any keys you need to before you start the playbook
   	```bash
@@ -35,7 +27,46 @@ The way VPNator is typically run at INSALan, a simple call to `ansible-playbook`
  	```
   - Launch Ansible with the `-k` or `--ask-pass` option. Ansible will prompt you for the password to use for the privilege ascension mechanism used (here, that is sudo).
 
+#### Adding remote hosts
+
+Our version of VPNator connects to any remote machine under the `vpn` inventory with the login `debian`, and no password. Remote hosts are listed in the inventory `/etc/ansible/hosts` in the following fashion :
+
+```
+[vpn]
+
+vpn1 subnet=$SUBNET1 fournisseur=vpn1 ansible_user=debian
+vpn2 subnet=$SUBNET2 fournisseur=vpn2 ansible_user=debian
+ovh1 subnet=$SUBNET3 fournisseur=ovh1 ansible_user=debian
+```
+
+where `$SUBNETX` is a subnet prefix in the likes of `10.8.2.0`. The local host will take ip address 1 on that subnet on the interface corresponding with the VPN connection, and the VPN will take address 2.
+
+Note that, using Ansible's terminology, `vpn1` and so on are host names (which should ideally be aliased to ip addresses/resolvable domain names) list under the same "inventory".
+
+The `fournisseur` key is later only referred to as `ovpnNumber` in the playbook or "VPN number" in this document.
+
+The `ansible_user` host variable is a documented ansible variable that indicates what user to log in as on that specific host. It is typically set to "debian", and when undefined that is the value taken.
+
+#### Modifying specific variables
+
+Various aspects of the playbook can be modified on a global level.
+  - The port on which OpenVPN should listen for incoming connections is modified around line 35 in the `port` variable
+  - The protocol used by OpenVPN to transmit data is determined by the variable `protocol`
+  - The variable `ovpnNumber` contains a unique identifier used to distinguish files from a specific VPS and its associated VPN
+  - Default arguments passed to OpenVPN are defined by the variable `default_args`. Additional arguments should be written in `extra_args`.
+
+All of these variables can be set either by modifying the playbook, or by providing extra arguments (which will override those set in the playbook) using the `-e` or `--extra-vars` option of `ansible-playbook`, followed by pairs of `key=val` strings. For example, you can change the `extra_args` variable to provide additional parameters to openvpn at launch by using
+```bash
+ansible-playbook vpNator.yml -e extra_args='--local 127.0.0.1'
+```
+
+Using additional external arguments is recommended for one-time uses. When long-term persistent modifications are needed, modify the playbook/host inventory files themselves.
+
+#### Limiting playbook runs
+
 It is also possible to limit the playbook's run to a particular machine among the group `vpn` (or any other you have chosen to use instead), using the `-l` option and providing individual hostnames or any pattern. Ansible will match individuals in the original pool of hosts and their data against that pattern, and only run the playbook for those successfully matched.
+
+***BE CAREFUL : When limiting ansible to a set of hosts that does not contain localhost, the menu asking you which operation you want to execute will be bypassed. This can be fixed by adding 'localhost' in the list of restricted hosts.***
 
 ### Structure of the Playbook
 
@@ -70,9 +101,13 @@ In the next subsection, we go over the technical details of each of these action
 
  - **What does it do?** To be quite explicit, this action kills any process called `openvpn` on the VPS and local host, and disables FireQOS.
 
- - **How is it done?** The killing of openvpn is simply done using `pkill openvpn`. Locally, since a single openvpn process deals with many VPN, we should not be killing the local process. A better method is under consideration. FireQOS has a command called `stop` that simply disables it.
+ - **How is it done?** The killing of openvpn on remote hosts is simply done using `pkill openvpn`. It sens a `SIGTERM` signal to the openvpn process, which handles it as a shutdown request.
 
- - **How do I know it worked?** On both the VPS and the local host, you should observe that the virtual network devices `tunX` associated to your VPN are no longer present. A `pgrep openvpn` on the VPS should yield nothing. There is no specific way to detect whether FireQOS is stopped or not (since it's not a running process), but we have never observed any failure with `fireqos stop`.
+ Locally, since a single openvpn process deals with a single VPN connection, we restrict the killing process by matching a pattern against the full command line that launched openvpn, containing the name (and VPN number) of the configuration file for the specific connection we want to terminate.
+
+ FireQOS has a command called `stop` that simply disables it.
+
+ - **How do I know it worked?** On both the VPS and the local host, you should observe that the virtual network devices `tunX` associated with your VPN are no longer present. A `pgrep openvpn` on the VPS should yield nothing. There is no specific way to detect whether FireQOS is stopped or not (since it's not a running process), but we have never observed any failure with `fireqos stop`.
 
 #### Uninstallation
 
@@ -109,7 +144,7 @@ In the next subsection, we go over the technical details of each of these action
 
  - **How do I know it worked?** Typically when everything here worked out, Ansible will not show any error, and you'll notice that every file mentioned above is at the right place. Running `iptables-save` will show the IP table rule line mentioned (at least once), and the `.ovpn` files will all be present in `openvpn_files` above the directory where you ran the playbook.
 
-##### Launching
+#### Launching
 
  - **What does it do?** The last action launches OpenVPN and FireQOS on both the local and remote hosts.
  - **How is it done?** On the remote host, OpenVPN is started by running the OpenVPN binary. The only argument provided is the path to the server configuration file uploaded during installation.
@@ -132,7 +167,7 @@ In the next subsection, we go over the technical details of each of these action
  ```
  If this works you have successfully logged onto the remote host through the VPN tunnel. Further testing is usually done by trying to access the global internet (typically websites such as your favorite search engine) in order to check that the VPN actually forwards network traffic.
 
-##### An explanation of the IP table rule
+### An explanation of the IP table rule
 
 As described in the documentation of `iptables`, the `nat` table is consulted whenever a packet creates a new connection. When NAT is enabled at that stage, the remainder of the connection is done under the impression of the external peer (i.e. not our VPS) that it is legitimately talking to the VPS itself, when, in actuality, some packages are emitted by players in the LAN, rise into our VPN tunnels, exit at the VPS, undergo masquerade, and then leave.
 
@@ -145,6 +180,18 @@ iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
 
 What is not explained here is simple `iptables` syntax : the `-t` parameter gives the table (here it's `nat`), the `-A` parameter indicates that we should append to the chain provided (here `POSTROUTING`) and the rest is the rule. Whenever the requirements (that a packet establishing a connection be about to leave for the outside world, the action listed after `-j` is
 
+### The certificate generation script
+
+During the installation procedure, a shell script called `certgen.sh` is copied remotely, and later on executed. Its inner workings are detailed in this section.
+
+This script is the last standing piece of shell script left from the original "Roadwarrior" OpenVPN script from which we created the ansible playbook. Both authors of the playbook decided to keep all of the operations related to certificate generation in that script, and to launch it remotely, in order to keep the playbook relatively clear.
+
+The script starts by downloading and inflating an archive from OpenVPN's GitHub repository for the `easy-rsa` program. The contents of that archive are then copied over to `/etc/openvpn/easyrsa` where we operate.
+
+Easy-RSA is used at first to generate what is called a 'PKI', or 'Public Key Infrastructure'. This is a system that wherein a Certificate Authority (CA) can receive certificate signing requests (CSRs) and generate certificates and certificate revocation lists (CRLs). These certificates are what interest us here.
+
+A CA is built before the script generates two certificates (one for the server and one for the client), along with a CRL. Once the CA and both certificates have been built, they are copied into `/etc/openvpn` and their content is copied into the `.ovpn` client configuration file (between appropriate tags), so that the client has copies of these certificates too.
+
 ## Common troubleshooting
 
 The following is a short list of typical errors that are encountered while using VPNator.
@@ -152,5 +199,4 @@ The following is a short list of typical errors that are encountered while using
  - No traffic goes through one or more of the VPNs but the tunnels work : this should not happen any more, but do check that both the IP table rule and IP forwarding are set as expected.
 
 ## To-do list
- - Manage to only kill one connection on the local host when using steps 2, 3 or 4 and restricting to one VPN. Hint : an option seems to exist provided that we give `openvpn` the right `.ovpn` file.
- - A more thorough explanation of the certificate generation script.
+ - Upgrade Easy-RSA in the certificate generation script to version 3.0.6.
