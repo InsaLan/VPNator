@@ -71,7 +71,7 @@
         become_method: sudo
         file:
           state: absent
-          path: /etc/firehall/fireqos.conf
+          path: /etc/firehol/fireqos.conf
 
       - name: Remove IP Table rule for NAT
         become: true
@@ -155,6 +155,13 @@
           template:
             src: templates/client.conf.j2
             dest: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
+
+        - name: Copy FireQoS config
+          become: true
+          become_method: sudo
+          template:
+            src: templates/fireqos_vpn.conf
+            dest: /etc/firehol/fireqos.conf
 
         - name: Generate the keys
           become: true
