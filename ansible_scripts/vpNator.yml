@@ -211,7 +211,7 @@
           become: true
           become_method: sudo
           command:
-            cmd: "/usr/sbin/openvpn --config /etc/openvpn/server.conf --daemon"
+            cmd: "/usr/sbin/openvpn --config /etc/openvpn/server.conf --daemon --comp-lzo no"
             chdir: /etc/openvpn
           #command: systemctl restart openvpn
           #@server.service)
