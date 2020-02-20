@@ -52,7 +52,7 @@
       - name: Kill OpenVPN on localhost # FIXME : Figure out whether you can only kill for one tunnel
         become: true
         become_method: sudo
-        command: pkill -f "openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn" 
+        command: pkill -f "openvpn --config ../openvpn_files/client-{{ ovpnNumber }}.ovpn" 
         delegate_to: localhost
         ignore_errors: true
       
@@ -113,7 +113,7 @@
             - /etc/openvpn
             - /etc/sysctl.d/30-openvpn-forward.conf
             - /home/vpn
-            - /home/nabooVPN{{ ovpnNumber }}
+            - /home/client-{{ ovpnNumber }}
 
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3")) or hostvars.localhost.pause_result is not defined
       tags: [ uninstall ]
@@ -154,7 +154,7 @@
           become_method: sudo
           template:
             src: templates/client.conf.j2
-            dest: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
+            dest: "/home/vpn/client-{{ ovpnNumber }}.ovpn"
 
         - name: Copy FireQoS config
           become: true
@@ -179,7 +179,7 @@
           become: true
           become_method: sudo
           lineinfile:            
-            path: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
+            path: "/home/vpn/client-{{ ovpnNumber }}.ovpn"
             regexp: '^dev tun'
             line: "dev tun{{groups['vpn'].index(inventory_hostname) + 1}}"
 
@@ -187,7 +187,7 @@
           become: true
           become_method: sudo
           fetch:
-            src: "/home/vpn/nabooVPN{{ ovpnNumber }}.ovpn"
+            src: "/home/vpn/client-{{ ovpnNumber }}.ovpn"
             dest: ../openvpn_files/
             flat: true
 
@@ -219,7 +219,7 @@
         - name: Deploy tunnels on the local host
           become: true
           become_method: sudo
-          command: "/usr/sbin/openvpn --config ../openvpn_files/nabooVPN{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
+          command: "/usr/sbin/openvpn --config ../openvpn_files/client-{{ ovpnNumber }}.ovpn {{ default_args }} {{ extra_args}}"
           # WARNING :   If you modify the beginning of this line (between openvpn and .ovpn), remember to modify the openvpn pkill
           #             line for local host up above
           delegate_to: localhost

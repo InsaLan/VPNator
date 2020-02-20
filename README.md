@@ -119,7 +119,7 @@ In the next subsection, we go over the technical details of each of these action
   - `/etc/openvpn` which contains all of the configuration OpenVPN uses
   - `/etc/sysctl.d/30-openvpn-forward.conf` which contains (we assume) system rules related to the forwarding of packets to and from openvpn.
   - `/home/vpn` where the certificate generation script is copied and run
-  - `/home/nabooVPN{{ ovpnNumber }}` which is the OpenVPN configuration file for the specific VPN with number `ovpnNumber`
+  - `/home/client-{{ ovpnNumber }}` which is the OpenVPN configuration file for the specific VPN with number `ovpnNumber`
 
  - **How do I know it worked?** If this operation worked, `apt search openvpn` should show you that the package `openvpn` is not installed. You should see none of the nodes listed above in the file system. Running `sudo iptables-save` should not show you the iptable line used to enable NAT (although if it does it is not a problem).
 
@@ -134,7 +134,7 @@ In the next subsection, we go over the technical details of each of these action
   - `client.conf.j2` is customized and copied to `/home/vpn` to act as the configuration file for a specific openvpn client
   - `dh.pem` is copied to `/etc/openvpn`. It is a typical Diffie-Hellman parameters file which seems to contain a certificate. For our purposes, we do not care about its strength or privacy.
 
- When we talk about "customizing", the reader should understand that specific fields delineated by `{{...}}` tags are detected in the files mentioned for the value stored in the variable `...` by Ansible. This way, for example, the `client.conf.j2` file can take the name `nabooVPN?.ovpn` where `?` is the VPN number corresponding to a specific instance.
+ When we talk about "customizing", the reader should understand that specific fields delineated by `{{...}}` tags are detected in the files mentioned for the value stored in the variable `...` by Ansible. This way, for example, the `client.conf.j2` file can take the name `client-?.ovpn` where `?` is the VPN number corresponding to a specific instance.
 
  Once all of this is in place, the `.ovpn` client configuration file is modified once more so that the `tun` device name takes on a unique number at the end. That number corresponds to the place of a specific instance in the inventory of hosts listed in the `vpn` group. When this modification is done, that `.ovpn` file is copied back onto the local host into a folder called `openvpn_files` (which is created when it does not exist), located above the directory where Ansible is run.
 
@@ -154,7 +154,7 @@ In the next subsection, we go over the technical details of each of these action
     The `daemon` option ensures that `openvpn` forks and runs in the background, detached from the shell access granted to the Ansible 'command' module.
 
     Locally, OpenVPN is launched with a couple of different options. Among the default arguments are :
-     - The path to the client configuration file `nabooVPN{{ ovpnNumber }}.ovpn` for obvious reasons
+     - The path to the client configuration file `client-{{ ovpnNumber }}.ovpn` for obvious reasons
      - `route-noexec` is a flag that prevents OpenVPN from setting IP routes automatically on the client to redirect network traffic. Other scripts in the deployment procedure at INSALan handle IP rules and IP routes in exactly the way we want to.
      - `daemon` such that OpenVPN runs in the background.
 
