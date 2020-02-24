@@ -33,7 +33,7 @@
   vars:
     subnet: "{{ hostvars[inventory_hostname].subnet }}"
     port: 5010
-    protocol: tcp
+    protocol: udp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
     packages: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     # OPENVPN
