@@ -21,7 +21,8 @@
         [2]: Remove OpenVPN (--tags uninstall)\n
         [3]: Uninstall and reinstall OpenVPN (--tags install,uninstall)\n
         [4]: Stop OpenVPN (--tags stop)\n
-        [5]: Start the tunnels and FireqOS (--tags start)"
+        [5]: Start the tunnels and FireqOS (--tags start)\n
+        [6]: Just change current config (--tags reconf)"
       register: pause_result
       
 
@@ -61,8 +62,8 @@
         become_method: sudo
         command: fireqos stop
         
-      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4") ) or hostvars.localhost.pause_result is not defined
-      tags: [ uninstall, stop ]
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "2" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "4" or hostvars.localhost.pause_result.user_input == "6") ) or hostvars.localhost.pause_result is not defined
+      tags: [ uninstall, stop, reconf ]
       
     - name: === Uninstall ===
       block:
@@ -120,16 +121,18 @@
       
       
     # ************************ INSTALL *****************************************
+    - name: Install packages and utilities
+        become: true
+        become_method: sudo
+        apt:
+          name: "{{ packages }}"
+          state: present
+          update_cache: yes
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
+      tags: [ install ]
+        
     - name: === Install ===
       block:
-        - name: Install packages and utilities
-          become: true
-          become_method: sudo
-          apt:
-            name: "{{ packages }}"
-            state: present
-            update_cache: yes
-            
         - name: Create a folder for the VPN software
           become: true
           become_method: sudo
@@ -201,8 +204,8 @@
           become_method: sudo
           command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
 
-      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
-      tags: [ install ]
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "6")) or hostvars.localhost.pause_result is not defined
+      tags: [ install, reconf ]
       
     # ****************** MOUNT **********************
     - name: === Mounting ===
@@ -229,8 +232,8 @@
           become_method: sudo
           command: "fireqos start"
           
-      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "5" )) or hostvars.localhost.pause_result is not defined
-      tags: [ install, start]
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input == "4")) or hostvars.localhost.pause_result is not defined
+      tags: [ install, start, reconf]
         
 
 
