@@ -15,11 +15,13 @@ dh /etc/openvpn/dh.pem
 cipher none #PAS DE CHIFFREMENT
 # auth SHA512
 auth none
-mssfix 1400
-tun-mtu 1444
+mssfix 1440
+tun-mtu 1470
 topology subnet
 server {{ subnet }} 255.255.255.0
 ifconfig-pool-persist ipp.txt
+
+txqueuelen 1000 # C'est une longue histoire
 
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 1.1.1.1"
