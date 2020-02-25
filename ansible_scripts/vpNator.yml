@@ -232,7 +232,7 @@
           become_method: sudo
           command: "fireqos start"
           
-      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input == "4")) or hostvars.localhost.pause_result is not defined
+      when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" or hostvars.localhost.pause_result.user_input == "5" or hostvars.localhost.pause_result.user_input == "6")) or hostvars.localhost.pause_result is not defined
       tags: [ install, start, reconf]
         
 
