@@ -125,7 +125,7 @@
       become: true
       become_method: sudo
       apt:
-      name: "{{ packages }}"
+        name: "{{ packages }}"
         state: present
         update_cache: yes
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
