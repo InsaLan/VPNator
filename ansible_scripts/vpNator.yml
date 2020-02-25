@@ -34,7 +34,7 @@
   vars:
     subnet: "{{ hostvars[inventory_hostname].subnet }}"
     port: 5010
-    protocol: udp
+    protocol: tcp
     ovpnNumber: "{{ hostvars[inventory_hostname].fournisseur }}"
     packages: ['openvpn', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     # OPENVPN
@@ -122,12 +122,12 @@
       
     # ************************ INSTALL *****************************************
     - name: Install packages and utilities
-        become: true
-        become_method: sudo
-        apt:
-          name: "{{ packages }}"
-          state: present
-          update_cache: yes
+      become: true
+      become_method: sudo
+      apt:
+      name: "{{ packages }}"
+        state: present
+        update_cache: yes
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
       tags: [ install ]
         
