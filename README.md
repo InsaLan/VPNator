@@ -129,6 +129,8 @@ In the next subsection, we go over the technical details of each of these action
 
  - **How is it done?** First and foremost the `apt` module is used to install all of the packages in the `packages` variable, after an update of the package list is done. This is typically very slow, especially if it is run for the first time on a VPS.
 
+ ***An important note on our call to the apt module*** : We pass the option `install_recommends` and set it to `false` since one of the recommended packages of `fireqos`, `firehol` (but not `firehol-common`), has a habit of ***locking us outside of the VPS***. We prevent this package from being installed, and especially run, by asking ansible not to install recommended packages alongside the ones we ask it to install. It also makes things run a little faster.
+
  A directory called `vpn` is created in the `home` directory using the `file` module. Then, a certificate generation script is customized and copied over to the VPS where it is run. More files are copied as well :
   - `server.conf.j2` is customized and copied to `/etc/openvpn` to act as the configuration file for the openvpn server
   - `client.conf.j2` is customized and copied to `/home/vpn` to act as the configuration file for a specific openvpn client

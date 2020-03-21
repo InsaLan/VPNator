@@ -127,6 +127,7 @@
       apt:
         name: "{{ packages }}"
         state: present
+        install_recommends: false # DO NOT LET IT INSTALL FIREHOL, DO NOT. (cf. Readme)
         update_cache: yes
       when: (hostvars.localhost.pause_result is defined and (hostvars.localhost.pause_result.user_input == "1" or hostvars.localhost.pause_result.user_input == "3" )) or hostvars.localhost.pause_result is not defined
       tags: [ install ]
