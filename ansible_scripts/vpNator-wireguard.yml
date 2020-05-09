@@ -13,7 +13,7 @@
   gather_facts: no
   tasks:
     - name: Check args
-      pause: 
+      pause:
         prompt: "WARNING: It looks like you didn't used any tag.\n
         You can use the argument '--tags tag1,tag2,...' to sepcify one or more action to run\n
         What do you want to do now?\n\n
@@ -69,6 +69,7 @@
       stat:
               path: /tmp/wireguard_private
       register: localhost_wireguard_private
+      tags: [ local_install ]
 
     - name: === Local Install ===
       block:
@@ -97,7 +98,7 @@
           become_method: sudo
           shell: wg set wg0 private-key /tmp/wireguard_private #TODO: Stop hardcoding stuff
 
-      when: not localhost_wireguard_private.stat.exists or hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["1", "5", "B"] 
+      when: not localhost_wireguard_private.stat.exists or hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["1", "5", "B"]
       tags: [ local_install ]
 
     - name: Obtain localhost public key
@@ -106,7 +107,7 @@
       shell: wg pubkey < /tmp/wireguard_private
       register: localhost_wireguard_public
       when: hostvars.localhost.pause_result is not defined or not hostvars.localhost.pause_result.user_input == "4"
-      tags: [ install, uninstall ]
+      tags: [ install ]
 
 # Et maintenant on s'occupe vraiment des VPNs
 - hosts: vpn
@@ -116,10 +117,10 @@
     tunnel_address: "{{ hostvars[inventory_hostname].addr }}"
     port: 5010
     # FIXME: Find an elegant way to pick the right version of the headers
-    packages: ['bc', 'linux-headers-4.19.0-8-cloud-amd64', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
+    packages: ['bc', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     localhost_wireguard_public: "{{ hostvars.localhost.localhost_wireguard_public.stdout }}"
   tasks:  # ****************************** UNINSTALL *************************************
-      
+
     - name: === STOP ===
       block:
       - name: Bring remote wireguard interface down
@@ -127,15 +128,16 @@
         become_method: sudo
         command: ip link set wg0 down
         ignore_errors: true
-      
+
       - name: Stop FireQOS on remote
         become: true
         become_method: sudo
         command: fireqos stop
-        
+        ignore_errors: true
+
       when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["8", "9", "A", "B"]
       tags: [ uninstall, stop ]
-      
+
     - name: === Uninstall ===
       block:
       - name: Remove Additional Tools Config (FireQOS)
@@ -165,7 +167,7 @@
         # machines where these other packages are dependencies of
         # working services, which configuration will get wiped.
         # Source : the apache2 server I accidentally wiped clean from my VPS
-                
+
       # Uninstall script begins here
       - name: Delete remote wireguard interface
         become: true
@@ -203,10 +205,10 @@
                 state: absent
                 path: /root/wireguard_private
 
-      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["9", "A", "B"] 
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["9", "A", "B"]
       tags: [ uninstall ]
-      
-      
+
+
     # ************************ INSTALL *****************************************
     - name: === Install ===
       block:
@@ -232,13 +234,13 @@
           register: remote_kernel_version
 
         # For some reason this makes ansible crash
-        #- name: Install appropriate linux headers
-          #become: true
-          #become_method: sudo
-          #apt:
-                  #name: "linux-headers-{{ remote_kernel_version }}"
-                  #state: present
-                  #install_recommends: false
+        - name: Install appropriate linux headers
+          become: true
+          become_method: sudo
+          apt:
+                  name: "linux-headers-{{ remote_kernel_version.stdout }}"
+                  state: present
+                  install_recommends: false
 
         - name: Install wireguard and compile DKMS module
           become: true
@@ -289,13 +291,18 @@
           become_method: sudo
           shell: wg set wg0 peer "{{ remote_public_wireguard.stdout }}" allowed-ips 0.0.0.0/0 endpoint "{{ inventory_hostname }}:{{ port }}" # Allow to route everything
           delegate_to: localhost
- 
+
         - name: Copy FireQoS config
           become: true
           become_method: sudo
           template:
             src: templates/fireqos_vpn.conf
             dest: /etc/firehol/fireqos.conf
+
+        - name: Substitute 'tun0' for 'wg0'
+          become: true
+          become_method: sudo
+          shell: sed -i "s/tun0/wg0/" /etc/firehol/fireqos.conf
 
         - name: Enable IP Forward
           become: true
@@ -307,9 +314,9 @@
           become_method: sudo
           command: iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
 
-      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["6", "7", "A", "B"] 
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["6", "A", "B"]
       tags: [ install ]
-      
+
     # ****************** MOUNT **********************
     - name: === Install ===
       block:
@@ -317,14 +324,14 @@
           become: true
           become_method: sudo
           shell: ip link set wg0 up
-            
+
         - name: Start FireQOS
           become: true
           become_method: sudo
           command: "fireqos start"
-          
-      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["7", "A", "B"] 
+
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["6", "7", "A", "B"]
       tags: [ install, start ]
-        
+
 
 
