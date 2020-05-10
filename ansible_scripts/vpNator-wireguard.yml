@@ -33,7 +33,7 @@
     peer_number: "{{ hostvars[inventory_hostname].id }}"
     tunnel_address: "10.8.{{ peer_number }}.1"
     local_address: "10.8.{{ peer_number }}.2"
-    localhost_wg_interface: "wg{{ peer_number }}"
+    localhost_wg_interface: "tun{{ peer_number }}"
     port: 5010
     packages: ['bc', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     localhost_wireguard_public: "{{ hostvars.localhost.localhost_wireguard_public.stdout }}"
@@ -44,7 +44,7 @@
       - name: Bring remote wireguard interface down
         become: true
         become_method: sudo
-        command: ip link set wg0 down
+        command: ip link set tun0 down
         ignore_errors: true
 
       - name: Stop FireQOS on remote
@@ -98,7 +98,7 @@
       - name: Delete remote wireguard interface
         become: true
         become_method: sudo
-        shell: ip link del wg0
+        shell: ip link del tun0
         ignore_errors: true
         # We don't care if it doesn't exist
 
@@ -210,17 +210,17 @@
         - name: Create remote interface
           become: true
           become_method: sudo
-          shell: ip link add wg0 type wireguard
+          shell: ip link add tun0 type wireguard
 
         - name: Give remote interface an address
           become: true
           become_method: sudo
-          shell: ip addr add "{{ tunnel_address }}/24" dev wg0
+          shell: ip addr add "{{ tunnel_address }}/24" dev tun0
 
         - name: Set remote wireguard port
           become: true
           become_method: sudo
-          shell: wg set wg0 listen-port 5010
+          shell: wg set tun0 listen-port 5010
 
         - name: Create wireguard private key
           become: true
@@ -230,12 +230,12 @@
         - name: Set wireguard private key
           become: true
           become_method: sudo
-          shell: wg set wg0 private-key /root/wireguard_private
+          shell: wg set tun0 private-key /root/wireguard_private
 
         - name: Add localhost as peer
           become: true
           become_method: sudo
-          shell: wg set wg0 peer "{{ localhost_wireguard_public.stdout }}" allowed-ips 10.0.1.100/0 # Only allow server
+          shell: wg set tun0 peer "{{ localhost_wireguard_public.stdout }}" allowed-ips 10.0.1.100/0 # Only allow server
 
         - name: Obtain peer public key
           become: true
@@ -256,10 +256,10 @@
             src: templates/fireqos_vpn.conf
             dest: /etc/firehol/fireqos.conf
 
-        - name: Substitute 'tun0' for 'wg0'
-          become: true
-          become_method: sudo
-          shell: sed -i "s/tun0/wg0/" /etc/firehol/fireqos.conf
+        #- name: Substitute 'tun0' for 'wg0'
+          #become: true
+          #become_method: sudo
+          #shell: sed -i "s/tun0/wg0/" /etc/firehol/fireqos.conf
 
         - name: Enable IP Forward
           become: true
@@ -283,10 +283,10 @@
           shell: "ip link set {{ localhost_wg_interface }} up"
           delegate_to: localhost
 
-        - name: Bring wg0 interface up
+        - name: Bring tun0 interface up
           become: true
           become_method: sudo
-          shell: ip link set wg0 up
+          shell: ip link set tun0 up
 
         - name: Start FireQOS
           become: true
