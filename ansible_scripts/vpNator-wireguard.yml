@@ -35,6 +35,7 @@
     local_address: "10.8.{{ peer_number }}.2"
     localhost_wg_interface: "tun{{ peer_number }}"
     port: 5010
+    # bc is required to build wireguard-dkms, but not an apt dependency
     packages: ['bc', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     localhost_wireguard_public: "{{ hostvars.localhost.localhost_wireguard_public.stdout }}"
   tasks:  # ****************************** UNINSTALL *************************************

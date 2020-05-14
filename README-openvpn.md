@@ -4,7 +4,7 @@ The purpose of this playbook, affectionately referred to as "VPNator", is to hel
 
 When run naively,
 ```bash
-ansible-playbook vpNator.yml
+ansible-playbook vpNator-ovpn.yml
 ```
 this playbook prompts you for an action. You can :
 
@@ -57,7 +57,7 @@ Various aspects of the playbook can be modified on a global level.
 
 All of these variables can be set either by modifying the playbook, or by providing extra arguments (which will override those set in the playbook) using the `-e` or `--extra-vars` option of `ansible-playbook`, followed by pairs of `key=val` strings. For example, you can change the `extra_args` variable to provide additional parameters to openvpn at launch by using
 ```bash
-ansible-playbook vpNator.yml -e extra_args='--local 127.0.0.1'
+ansible-playbook vpNator-ovpn.yml -e extra_args='--local 127.0.0.1'
 ```
 
 Using additional external arguments is recommended for one-time uses. When long-term persistent modifications are needed, modify the playbook/host inventory files themselves.
