@@ -1,6 +1,6 @@
 # Ansible playbook for remote Wireguard deployment
 
-The purpose of this playbook, affectionately referred to as "VPNator", is to help with the remote installation, deployment, stoppage and removal of OpenVPN on Debian based systems. Currently, only up-to-date Debian 10 is sure to be supported.
+The purpose of this playbook, affectionately referred to as "VPNator", is to help with the remote installation, deployment, stoppage and removal of WireGuard on Debian based systems. Currently, only up-to-date Debian 10 is sure to be supported.
 
 When run naively,
 ```bash
@@ -167,7 +167,7 @@ In the next subsection, we go over the technical details of each of these action
 
 As described in the documentation of `iptables`, the `nat` table is consulted whenever a packet creates a new connection. When NAT is enabled at that stage, the remainder of the connection is done under the impression of the external peer (i.e. not our VPS) that it is legitimately talking to the VPS itself, when, in actuality, some packages are emitted by players in the LAN, rise into our VPN tunnels, exit at the VPS, undergo masquerade, and then leave.
 
-Specifically, the `POSTROUTING` chain is called just as packets are about to leave. This makes sense, since we only wish to masquerade packets that openvpn, running on the VPS, emits to the outside world, stemming from data circulating in the tunnels. Moreover, those packets should only be masqueraded whenever they leave the VPS and try and contact the outside world. Since *we are always supposed to make first contact in any connection that transits through OpenVPN*, it makes sense to only masquerade those packets that will leave for the `en+` interface.
+Specifically, the `POSTROUTING` chain is called just as packets are about to leave. This makes sense, since we only wish to masquerade packets that WireGuard, running on the VPS, emits to the outside world, stemming from data circulating in the tunnels. Moreover, those packets should only be masqueraded whenever they leave the VPS and try and contact the outside world. Since *we are always supposed to make first contact in any connection that transits through WireGuard*, it makes sense to only masquerade those packets that will leave for the `en+` interface.
 
 All of these requirements explain the following line of IP table rule :
 ```bash
