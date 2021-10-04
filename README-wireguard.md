@@ -8,7 +8,7 @@ ansible-playbook vpNator-wireguard.yml
 ```
 this playbook prompts you for an action. You can :
 
- 1. : Install WireGuard's package (usually, to compile the associated kernel module), set up and configure  
+ 1. : Install WireGuard's package (usually, to compile the associated kernel module), set up and configure
  2. : Start WireGuard and FireQOS
  3. : Stop WireGuard and FireQOS
  4. : Remove WireGuard and the other tools.
@@ -167,11 +167,11 @@ In the next subsection, we go over the technical details of each of these action
 
 As described in the documentation of `iptables`, the `nat` table is consulted whenever a packet creates a new connection. When NAT is enabled at that stage, the remainder of the connection is done under the impression of the external peer (i.e. not our VPS) that it is legitimately talking to the VPS itself, when, in actuality, some packages are emitted by players in the LAN, rise into our VPN tunnels, exit at the VPS, undergo masquerade, and then leave.
 
-Specifically, the `POSTROUTING` chain is called just as packets are about to leave. This makes sense, since we only wish to masquerade packets that WireGuard, running on the VPS, emits to the outside world, stemming from data circulating in the tunnels. Moreover, those packets should only be masqueraded whenever they leave the VPS and try and contact the outside world. Since *we are always supposed to make first contact in any connection that transits through WireGuard*, it makes sense to only masquerade those packets that will leave for the `en+` interface.
+Specifically, the `POSTROUTING` chain is called just as packets are about to leave. This makes sense, since we only wish to masquerade packets that WireGuard, running on the VPS, emits to the outside world, stemming from data circulating in the tunnels. Moreover, those packets should only be masqueraded whenever they leave the VPS and try and contact the outside world. Since *we are always supposed to make first contact in any connection that transits through WireGuard*, it makes sense to only masquerade those packets that will leave for the `e+` interface.
 
 All of these requirements explain the following line of IP table rule :
 ```bash
-iptables -t nat -A POSTROUTING -o en+ -j MASQUERADE
+iptables -t nat -A POSTROUTING -o e+ -j MASQUERADE
 ```
 
 What is not explained here is simple `iptables` syntax : the `-t` parameter gives the table (here it's `nat`), the `-A` parameter indicates that we should append to the chain provided (here `POSTROUTING`) and the rest is the rule. Whenever the requirements (that a packet establishing a connection be about to leave for the outside world, the action listed after `-j` is
