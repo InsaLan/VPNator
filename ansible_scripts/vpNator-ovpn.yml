@@ -77,7 +77,7 @@
       - name: Remove IP Table rule for NAT
         become: true
         become_method: sudo
-        command: iptables -t nat -D POSTROUTING -o en+ -j MASQUERADE
+        command: iptables -t nat -D POSTROUTING -o e+ -j MASQUERADE
         ignore_errors: true
 
         #- name: Uninstall additional tools

@@ -1,0 +1,301 @@
+---
+
+
+#FIXME: Le script tunnel.sh ne focntionne pas car le path du .ovpn est hardcodé dedans
+
+
+# On vérifie si aucun tag n'a été défini, dans ce cas on affiche une invite pour choisir l'action a effectuer.
+# Le résultat de l'user input est stocké dans hostvars.localhost.pause_result.user_input. Il vaut un string ("1", "2", etc...) si aucun tag a été défini, ou est undefined si au moins un tag a été précisé. Cette variable est TREES CHIANTE à récupérer puisqu'elle ests sur l'host 'localhost'
+
+# On a: hostvars.localhost.pause_result.user_input qui contient la réponse (ou qui est undefined si les tags sont utilisés)
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Check args
+      pause:
+        prompt: "WARNING: It looks like you didn't used any tag.\n
+        You can use the argument '--tags tag1,tag2,...' to sepcify one or more action to run\n
+        What do you want to do now?\n\n
+        \t[1]: Install Wireguard and other tools (--tags install)\n
+        \t[2]: Start Wireguard and FireQOS (--tags start)\n
+        \t[3]: Stop Wireguard and FireQOS (--tags stop)\n
+        \t[4]: Remove Wireguard and other tools (--tags uninstall)\n
+        \t[5]: Uninstall & Install (--tags install,uninstall)\n
+        Please select exactly one"
+      register: pause_result
+
+# Et maintenant on s'occupe vraiment des VPNs
+- hosts: vpn
+  remote_user: debian
+  gather_facts: no
+  vars:
+    peer_number: "{{ hostvars[inventory_hostname].id }}"
+    tunnel_address: "10.8.{{ peer_number }}.1"
+    local_address: "10.8.{{ peer_number }}.2"
+    localhost_wg_interface: "tun{{ peer_number }}"
+    port: 5010
+    # bc is required to build wireguard-dkms, but not an apt dependency
+    packages: ['bc', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
+    localhost_wireguard_public: "{{ hostvars.localhost.localhost_wireguard_public.stdout }}"
+  tasks:  # ****************************** UNINSTALL *************************************
+
+    - name: === STOP ===
+      block:
+      - name: Bring remote wireguard interface down
+        become: true
+        become_method: sudo
+        command: ip link set tun0 down
+        ignore_errors: true
+
+      - name: Stop FireQOS on remote
+        become: true
+        become_method: sudo
+        command: fireqos stop
+        ignore_errors: true
+
+      - name: Bring local wg interface down
+        become: true
+        become_method: sudo
+        command: ip link set "{{ localhost_wg_interface }}" down
+        delegate_to: localhost
+        ignore_errors: true
+
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["3", "4", "5"]
+      tags: [ uninstall, stop ]
+
+    - name: === Uninstall ===
+      block:
+      - name: Remove Additional Tools Config (FireQOS)
+        become: true
+        become_method: sudo
+        file:
+          state: absent
+          path: /etc/firehol/fireqos.conf
+
+      - name: Remove IP Table rule for NAT
+        become: true
+        become_method: sudo
+        command: iptables -t nat -D POSTROUTING -o e+ -j MASQUERADE #FIXME catch both eth+ and en+, but better
+        ignore_errors: true
+
+        #- name: Uninstall additional tools
+        #become: true
+        #become_method: sudo
+        #apt:
+        #        state: absent
+        #        purge: true
+        #        name: "{{ packages }}"
+        #
+        # As it turns out, none of the tools we have really need to be
+        # removed that badly. We can let them sit there until the VPS
+        # expires. Also, this part is dangerous to use in testing on
+        # machines where these other packages are dependencies of
+        # working services, which configuration will get wiped.
+        # Source : the apache2 server I accidentally wiped clean from my VPS
+
+      # Uninstall script begins here
+      # Note: destroying the interface removes the peer remotely
+      - name: Delete remote wireguard interface
+        become: true
+        become_method: sudo
+        shell: ip link del tun0
+        ignore_errors: true
+        # We don't care if it doesn't exist
+
+      - name: Delete local wireguard interface
+        become: true
+        become_method: sudo
+        shell: "ip link del {{ localhost_wg_interface }}"
+        ignore_errors: true
+        delegate_to: localhost
+
+      - name: Remove local wireguad private key
+        become: true
+        become_method: sudo
+        file:
+                state: absent
+                path: "/tmp/wireguard_private_{{ peer_number }}"
+        ignore_errors: true
+        delegate_to: localhost
+
+      - name: Uninstall and purge wireguard
+        become: true
+        become_method: sudo
+        apt:
+                name: wireguard
+                purge: true
+                state: absent
+
+      - name: Remove wireguard private key file
+        become: true
+        become_method: sudo
+        file:
+                state: absent
+                path: /root/wireguard_private
+
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["4", "5"]
+      tags: [ uninstall ]
+
+
+    # ************************ INSTALL *****************************************
+    - name: === Install ===
+      block:
+        - name: === Localhost Install ===
+          block:
+                - name: Generate localhost wireguard key
+                  become: true
+                  become_method: sudo
+                  shell: "wg genkey > /tmp/wireguard_private_{{ peer_number }}"
+
+                - name: Create localhost interface
+                  become: true
+                  become_method: sudo
+                  shell: "ip link add {{ localhost_wg_interface }} type wireguard"
+
+                - name: Give localhost wireguard interface address 2
+                  become: true
+                  become_method: sudo
+                  shell: "ip addr add {{ local_address }}/24 dev {{ localhost_wg_interface }}"
+
+                - name: Set localhost private key
+                  become: true
+                  become_method: sudo
+                  shell: "wg set {{ localhost_wg_interface }} private-key /tmp/wireguard_private_{{ peer_number }}"
+
+                - name: Obtain localhost public key
+                  become: true
+                  become_method: sudo
+                  shell: "wg pubkey < /tmp/wireguard_private_{{ peer_number }}"
+                  register: localhost_wireguard_public
+          delegate_to: localhost
+
+        - name: Install packages and utilities
+          become: true
+          become_method: sudo
+          apt:
+                  name: "{{ packages }}"
+                  state: present
+                  install_recommends: false # DO NOT LET IT INSTALL FIREHOL, DO NOT. (cf. Readme)
+                  update_cache: yes
+
+        - name: Apt full upgrade
+          become: true
+          become_method: sudo
+          apt:
+                  upgrade: full
+                  state: latest
+                  install_recommends: false
+
+        - name: Figure out kernel version
+          shell: uname -r
+          register: remote_kernel_version
+
+        # For some reason this makes ansible crash
+        - name: Install appropriate linux headers
+          become: true
+          become_method: sudo
+          apt:
+                  name: "linux-headers-{{ remote_kernel_version.stdout }}"
+                  state: present
+                  install_recommends: false
+
+        - name: Install wireguard and compile DKMS module
+          become: true
+          become_method: sudo
+          apt:
+                  name: "wireguard"
+                  state: present
+                  install_recommends: false
+
+        - name: Create remote interface
+          become: true
+          become_method: sudo
+          shell: ip link add tun0 type wireguard
+
+        - name: Give remote interface an address
+          become: true
+          become_method: sudo
+          shell: ip addr add "{{ tunnel_address }}/24" dev tun0
+
+        - name: Set remote wireguard port
+          become: true
+          become_method: sudo
+          shell: wg set tun0 listen-port 5010
+
+        - name: Create wireguard private key
+          become: true
+          become_method: sudo
+          shell: wg genkey > /root/wireguard_private
+
+        - name: Set wireguard private key
+          become: true
+          become_method: sudo
+          shell: wg set tun0 private-key /root/wireguard_private
+
+        - name: Add localhost as peer
+          become: true
+          become_method: sudo
+          shell: wg set tun0 peer "{{ localhost_wireguard_public.stdout }}" allowed-ips 10.0.1.100/0 # Only allow server
+
+        - name: Obtain peer public key
+          become: true
+          become_method: sudo
+          shell: wg pubkey < /root/wireguard_private
+          register: remote_public_wireguard
+
+        - name: Add peer to localhost
+          become: true
+          become_method: sudo
+          shell: wg set "{{ localhost_wg_interface }}" peer "{{ remote_public_wireguard.stdout }}" allowed-ips 0.0.0.0/0 endpoint "{{ inventory_hostname }}:{{ port }}" # Allow to route everything
+          delegate_to: localhost
+
+        - name: Copy FireQoS config
+          become: true
+          become_method: sudo
+          template:
+            src: templates/fireqos_vpn.conf
+            dest: /etc/firehol/fireqos.conf
+
+        #- name: Substitute 'tun0' for 'wg0'
+          #become: true
+          #become_method: sudo
+          #shell: sed -i "s/tun0/wg0/" /etc/firehol/fireqos.conf
+
+        - name: Enable IP Forward
+          become: true
+          become_method: sudo
+          shell: echo 1 > /proc/sys/net/ipv4/ip_forward
+
+        - name: IP Table Rule
+          become: true
+          become_method: sudo
+          command: iptables -t nat -A POSTROUTING -o e+ -j MASQUERADE
+
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["1", "5"]
+      tags: [ install ]
+
+    # ****************** MOUNT **********************
+    - name: === Start ===
+      block:
+        - name: Start localhost wireguard interface
+          become: true
+          become_method: sudo
+          shell: "ip link set {{ localhost_wg_interface }} up"
+          delegate_to: localhost
+
+        - name: Bring tun0 interface up
+          become: true
+          become_method: sudo
+          shell: ip link set tun0 up
+
+        - name: Start FireQOS
+          become: true
+          become_method: sudo
+          command: "fireqos start"
+
+      when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["1", "2", "5"]
+      tags: [ install, start ]
+
+
+
