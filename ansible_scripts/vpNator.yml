@@ -36,7 +36,7 @@
     localhost_wg_interface: "tun{{ peer_number }}"
     port: 5010
     # bc is required to build wireguard-dkms, but not an apt dependency
-    packages: ['bc', 'iptables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
+    packages: ['bc', 'nftables', 'openssl', 'htop', 'tmux', 'screen', 'neovim', 'hexedit', 'vim', 'emacs', 'fireqos', 'iftop', 'bmon', 'curl', 'ca-certificates', 'iperf3']
     localhost_wireguard_public: "{{ hostvars.localhost.localhost_wireguard_public.stdout }}"
   tasks:  # ****************************** UNINSTALL *************************************
 
@@ -76,7 +76,7 @@
       - name: Remove IP Table rule for NAT
         become: true
         become_method: sudo
-        command: iptables -t nat -D POSTROUTING -o e+ -j MASQUERADE #FIXME catch both eth+ and en+, but better
+        command: nft delete chain insalan masquerading #FIXME catch both eth+ and en+, but better
         ignore_errors: true
 
         #- name: Uninstall additional tools
@@ -221,7 +221,7 @@
         - name: Set remote wireguard port
           become: true
           become_method: sudo
-          shell: wg set tun0 listen-port 5010
+          shell: wg set tun0 listen-port "{{ port}}"
 
         - name: Create wireguard private key
           become: true
@@ -270,7 +270,12 @@
         - name: IP Table Rule
           become: true
           become_method: sudo
-          command: iptables -t nat -A POSTROUTING -o e+ -j MASQUERADE
+          shell: |
+            nft add table ip insalan
+            nft -- add chain insalan masquerading "{ type nat hook postrouting priority 100; }"
+            nft add rule insalan masquerading oifname "e*" masquerade
+          args:
+            executable: /bin/bash
 
       when: hostvars.localhost.pause_result is not defined or hostvars.localhost.pause_result.user_input in ["1", "5"]
       tags: [ install ]
