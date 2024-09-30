@@ -41,6 +41,8 @@ ovh1 id=100 ansible_user=bidule
 
 The subnet used within a tunnel is computed using that id. It must be an integer between `1` and `254`. The local host will take ip address 1 on that subnet on the interface corresponding with the VPN connection, and the VPN will take address 2.
 
+This file can be generated beforehand by [vpn_register.py](vpn_register.py), which will also register the VPNs to other useful locations, like in `/etc/hosts`.
+
 Note that, using Ansible's terminology, `vpn1` and so on are host names (which should ideally be aliased to ip addresses/resolvable domain names) list under the same "inventory".
 
 The `ansible_user` host variable is a documented ansible variable that indicates what user to log in as on that specific host. It is typically set to "debian", and when undefined that is the value taken.
