@@ -41,6 +41,8 @@ ovh1 subnet=$SUBNET3 fournisseur=ovh1 ansible_user=debian
 
 where `$SUBNETX` is a subnet prefix in the likes of `10.8.2.0`. The local host will take ip address 1 on that subnet on the interface corresponding with the VPN connection, and the VPN will take address 2.
 
+This file can be generated beforehand by [vpn_register.py](vpn_register.py), which will also register the VPNs to other useful locations, like in `/etc/hosts`.
+
 Note that, using Ansible's terminology, `vpn1` and so on are host names (which should ideally be aliased to ip addresses/resolvable domain names) list under the same "inventory".
 
 The `fournisseur` key is later only referred to as `ovpnNumber` in the playbook or "VPN number" in this document.
