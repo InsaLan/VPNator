@@ -247,7 +247,7 @@
         - name: Add peer to localhost
           become: true
           become_method: sudo
-          shell: wg set "{{ localhost_wg_interface }}" peer "{{ remote_public_wireguard.stdout }}" allowed-ips 0.0.0.0/0 endpoint "{{ inventory_hostname }}:{{ port }}" # Allow to route everything
+          shell: wg set "{{ localhost_wg_interface }}" peer "{{ remote_public_wireguard.stdout }}" persistent-keepalive 30 allowed-ips 0.0.0.0/0 endpoint "{{ inventory_hostname }}:{{ port }}" # Allow to route everything
           delegate_to: localhost
 
         - name: Copy FireQoS config
