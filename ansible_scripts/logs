@@ -1,0 +1,395 @@
+
+PLAY [localhost] ***************************************************************
+
+TASK [Check args] **************************************************************
+[Check args]
+WARNING: It looks like you didn't used any tag.
+ You can use the argument '--tags tag1,tag2,...' to sepcify one or more action to run
+ What do you want to do now?
+
+ 	[1]: Install Wireguard and other tools (--tags install)
+ 	[2]: Start Wireguard and FireQOS (--tags start)
+ 	[3]: Stop Wireguard and FireQOS (--tags stop)
+ 	[4]: Remove Wireguard and other tools (--tags uninstall)
+ 	[5]: Uninstall & Install (--tags install,uninstall)
+ Please select exactly one:
+Press 'C' to continue the play or 'A' to abort 
+ok: [localhost]
+
+PLAY [vpn] *********************************************************************
+
+TASK [Bring remote wireguard interface down] ***********************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Stop FireQOS on remote] **************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Bring local wg interface down] *******************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Remove Additional Tools Config (FireQOS)] ********************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Delete remote wireguard interface] ***************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Delete local wireguard interface] ****************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Remove local wireguad private key] ***************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Uninstall and purge wireguard] *******************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Remove wireguard private key file] ***************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Generate localhost wireguard key] ****************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Create localhost interface] **********************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Give localhost wireguard interface address 2] ****************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Set localhost private key] ***********************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Obtain localhost public key] *********************************************
+skipping: [vpn2]
+skipping: [vpn1]
+skipping: [vpn4]
+skipping: [vpn3]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Install packages and utilities] ******************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Apt full upgrade] ********************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Figure out kernel version] ***********************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Install appropriate linux headers] ***************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Install wireguard and compile DKMS module] *******************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Create remote interface] *************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Give remote interface an address] ****************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Set remote wireguard port] ***********************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Create wireguard private key] ********************************************
+skipping: [vpn1]
+skipping: [vpn3]
+skipping: [vpn2]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Set wireguard private key] ***********************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Add localhost as peer] ***************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Obtain peer public key] **************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Add peer to localhost] ***************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Copy FireQoS config] *****************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Enable IP Forward] *******************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [IP Table Rule] ***********************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn7]
+skipping: [vpn6]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Start localhost wireguard interface] *************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Bring tun0 interface up] *************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+TASK [Start FireQOS] ***********************************************************
+skipping: [vpn1]
+skipping: [vpn2]
+skipping: [vpn3]
+skipping: [vpn4]
+skipping: [vpn5]
+skipping: [vpn6]
+skipping: [vpn7]
+skipping: [vpn8]
+skipping: [vpn9]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+vpn1                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn2                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn3                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn4                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn5                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn6                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn7                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn8                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+vpn9                       : ok=0    changed=0    unreachable=0    failed=0    skipped=33   rescued=0    ignored=0   
+
